@@ -2,6 +2,7 @@ version: "3.8"
 
 services:
   api:
+    container_name: api
     build: ./api
     ports:
       - "3000:3000"
@@ -12,7 +13,7 @@ services:
     volumes:
       - ./api:/app
     depends_on:
-      - paper-server
+      - minecraft
 
   minecraft:
     build: ./minecraft
@@ -26,3 +27,5 @@ services:
     volumes:
       - ./minecraft/data:/data:rw
     restart: unless-stopped
+volumes:
+  minecraft:

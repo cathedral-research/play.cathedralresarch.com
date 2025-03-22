@@ -88,4 +88,35 @@ app.post("/new-post", async (c) => {
   }
 });
 
+app.post("/test", async (c) => {
+  try {
+    // Construct Minecraft command to create a book with the post content
+    const command = `/say hello`;
+
+    const { RCON_PASSWORD } = env<{ RCON_PASSWORD: string }>(c);
+
+    const HOST = "minecraft";
+    const PORT = 25575;
+
+    const rcon = await Rcon.connect({
+      host: HOST,
+      port: PORT,
+      password: RCON_PASSWORD,
+    });
+
+    const response = await rcon.send(command);
+    await rcon.end();
+
+    return c.json(
+      {
+        success: true,
+        rconResponse: response,
+      },
+      200,
+    );
+  } catch (err: any) {
+    return c.json({ error: err.message || "Something broke bad" }, 500);
+  }
+});
+
 export default app;

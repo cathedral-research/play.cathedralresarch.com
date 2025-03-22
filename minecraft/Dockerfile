@@ -1,11 +1,6 @@
 FROM marctv/minecraft-papermc-server:latest
-
-# Add a template server.properties file
-COPY server.properties.template /data/
-
-# Add an entrypoint script
-COPY entrypoint.sh /entrypoint.sh
-RUN chmod +x /entrypoint.sh
-
-# Use our custom entrypoint
-ENTRYPOINT ["/entrypoint.sh"]
+# Move template files outside the volume mount path
+COPY server.properties.template /opt/templates/
+COPY entrypoint.sh /opt/templates/entrypoint.sh
+RUN chmod +x /opt/templates/entrypoint.sh
+ENTRYPOINT ["/opt/templates/entrypoint.sh"]
