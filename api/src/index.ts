@@ -1,5 +1,5 @@
 import { Hono } from "hono";
-import { WebSocket } from "ws";
+import { SocketDetails, SocketPromiseWrapper } from "./socketwrapper";
 
 const app = new Hono();
 
@@ -13,86 +13,52 @@ interface NewPostBody {
 const HOST = "localhost";
 const PORT = 4567;
 const CONSOLE_PASSWORD = process.env.CONSOLE_PASSWORD;
-let socket: WebSocket | null;
 
-function start() {
-  try {
-    socket = new WebSocket(`ws://${HOST}:${PORT}/v1/ws/console`, {
-      headers: {
-        cookie: `x-servertap-key=${CONSOLE_PASSWORD}`,
-      },
-    });
-
-    socket.onerror = (error: any) => {
-      console.error("WebSocket error:", error);
-    };
-
-    socket.onmessage = (message) => {
-      const s = message.data.toString();
-      const p = JSON.parse(s);
-      console.log("ws received:", s);
-    };
-
-    socket.onopen = () => {
-      console.log("Connected to WebSocket server");
-    };
-  } catch (e) {
-    console.error(e);
-  }
-}
-
-start();
+let s: SocketDetails = {
+  url: `ws://${HOST}:${PORT}/v1/ws/console`,
+  opts: {
+    headers: {
+      cookie: `x-servertap-key=${CONSOLE_PASSWORD}`,
+    },
+  },
+};
 
 app.post("/new-post", async (c) => {
   try {
-    if (!socket) throw Error("no websocket");
-
+    const socket = new SocketPromiseWrapper({ url: s.url, opts: s.opts });
     const body: NewPostBody = await c.req.json();
-
-    console.log("new book:", body.author, body.title);
 
     // Construct command with pages first in the tag
     const command = generateBookCommand(body.author, body.title, body.content);
 
-    socket.send(command);
+    await socket.ready();
 
-    return c.json(
-      {
-        success: true,
-        post: body,
-      },
-      200,
-    );
+    const resp = await socket.send(command);
+    const parsed = JSON.parse(resp);
+
+    if (parsed.message.split(" ")[0] == "Modified") {
+      return c.json(
+        {
+          success: true,
+        },
+        200,
+      );
+    } else throw Error("unexpected response");
   } catch (err: any) {
     console.log(err);
     return c.json({ error: err.message || "Something broke bad" }, 500);
   }
 });
 
-app.post("/test", async (c) => {
-  try {
-    // Construct Minecraft command to create a book with the post content
-    const command = `say hello`;
-
-    return c.json(
-      {
-        success: true,
-      },
-      200,
-    );
-  } catch (err: any) {
-    return c.json({ error: err.message || "Something broke bad" }, 500);
-  }
-});
-
 app.get("/items", async (c) => {
   try {
-    // const response = await rcon.send("data get block 4 68 32 Items");
-    // await rcon.end();
+    const socket = new SocketPromiseWrapper({ url: s.url, opts: s.opts });
+    const resp = await socket.send("data get block 4 68 32 Items");
 
     return c.json(
       {
         success: true,
+        message: resp,
       },
       200,
     );
