@@ -1,3 +1,0 @@
-enable-rcon=true
-rcon.password=${RCON_PASSWORD}
-rcon.port=25575

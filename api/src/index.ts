@@ -1,89 +1,70 @@
 import { Hono } from "hono";
-import { Rcon } from "rcon-client";
-import { env } from "hono/adapter";
+import { WebSocket } from "ws";
 
 const app = new Hono();
 
 interface NewPostBody {
   title: string;
   pubDate: string;
-  authors: string;
+  author: string;
   content: string;
 }
 
-app.post("/new-post", async (c) => {
+const HOST = "localhost";
+const PORT = 4567;
+const CONSOLE_PASSWORD = process.env.CONSOLE_PASSWORD;
+let socket: WebSocket | null;
+
+function start() {
   try {
-    const body = await c.req.json();
-    const mdContent = body.mdFile;
-
-    if (!mdContent) return c.json({ error: "No markdown file provided" }, 400);
-
-    // Parse frontmatter and content
-    const frontmatterMatch = mdContent.match(
-      /^---\n([\s\S]*?)\n---\n([\s\S]*)$/,
-    );
-
-    if (!frontmatterMatch)
-      return c.json({ error: "Invalid markdown format" }, 400);
-
-    const frontmatterRaw = frontmatterMatch[1];
-    const content = frontmatterMatch[2].trim();
-
-    // Parse frontmatter into key-value pairs
-    const frontmatter: Record<string, string> = {};
-    frontmatterRaw.split("\n").forEach((line: string) => {
-      const [key, ...valueParts] = line.split(":");
-      if (key && valueParts.length) {
-        frontmatter[key.trim()] = valueParts.join(":").trim();
-      }
+    socket = new WebSocket(`ws://${HOST}:${PORT}/v1/ws/console`, {
+      headers: {
+        cookie: `x-servertap-key=${CONSOLE_PASSWORD}`,
+      },
     });
 
-    const newPost: NewPostBody = {
-      title: frontmatter.title || "",
-      pubDate: frontmatter.pubDate || "",
-      authors: frontmatter.authors || "",
-      content,
+    socket.onerror = (error: any) => {
+      console.error("WebSocket error:", error);
     };
 
-    // Split content into pages (limit to ~14 chars per page for Minecraft books)
-    const pageSize = 240;
-    const pages: string[] = [];
+    socket.onmessage = (message) => {
+      const s = message.data.toString();
+      const p = JSON.parse(s);
+      console.log("ws received:", s);
+    };
 
-    for (let i = 0; i < content.length; i += pageSize) {
-      const page = content.substring(i, i + pageSize);
-      pages.push(`{"text":"${page.replace(/"/g, '\\"')}"}`);
-    }
+    socket.onopen = () => {
+      console.log("Connected to WebSocket server");
+    };
+  } catch (e) {
+    console.error(e);
+  }
+}
 
-    // Construct Minecraft command to create a book with the post content
-    const command = `/data modify block ~ ~ ~ Items append value {Slot:4b,id:"minecraft:written_book",Count:1b,tag:{
-      title:"${newPost.title.replace(/"/g, '\\"')}",
-      author:"${newPost.authors.replace(/"/g, '\\"')}",
-      pages:[${pages.map((page) => `'${page}'`).join(",")}]
-    }}`;
+start();
 
-    const { RCON_PASSWORD } = env<{ RCON_PASSWORD: string }>(c);
+app.post("/new-post", async (c) => {
+  try {
+    if (!socket) throw Error("no websocket");
 
-    const HOST = "minecraft";
-    const PORT = 25575;
+    const body: NewPostBody = await c.req.json();
 
-    const rcon = await Rcon.connect({
-      host: HOST,
-      port: PORT,
-      password: RCON_PASSWORD,
-    });
+    console.log("new book:", body.author, body.title);
 
-    const response = await rcon.send(command);
-    await rcon.end();
+    // Construct command with pages first in the tag
+    const command = generateBookCommand(body.author, body.title, body.content);
+
+    socket.send(command);
 
     return c.json(
       {
         success: true,
-        post: newPost,
-        rconResponse: response,
+        post: body,
       },
       200,
     );
   } catch (err: any) {
+    console.log(err);
     return c.json({ error: err.message || "Something broke bad" }, 500);
   }
 });
@@ -91,26 +72,11 @@ app.post("/new-post", async (c) => {
 app.post("/test", async (c) => {
   try {
     // Construct Minecraft command to create a book with the post content
-    const command = `/say hello`;
-
-    const { RCON_PASSWORD } = env<{ RCON_PASSWORD: string }>(c);
-
-    const HOST = "minecraft";
-    const PORT = 25575;
-
-    const rcon = await Rcon.connect({
-      host: HOST,
-      port: PORT,
-      password: RCON_PASSWORD,
-    });
-
-    const response = await rcon.send(command);
-    await rcon.end();
+    const command = `say hello`;
 
     return c.json(
       {
         success: true,
-        rconResponse: response,
       },
       200,
     );
@@ -118,5 +84,51 @@ app.post("/test", async (c) => {
     return c.json({ error: err.message || "Something broke bad" }, 500);
   }
 });
+
+app.get("/items", async (c) => {
+  try {
+    // const response = await rcon.send("data get block 4 68 32 Items");
+    // await rcon.end();
+
+    return c.json(
+      {
+        success: true,
+      },
+      200,
+    );
+  } catch (err: any) {
+    return c.json({ error: err.message || "Something broke bad" }, 500);
+  }
+});
+
+function generateBookCommand(
+  author: string,
+  title: string,
+  content: string,
+): string {
+  // Split content into pages of max 210 chars
+  const pages: string[] = [];
+  let remaining = content;
+  while (remaining.length > 0) {
+    if (remaining.length <= 210) {
+      pages.push(remaining);
+      break;
+    }
+    // Find last space within limit - we're not savages who break words
+    let cutIndex = remaining.substring(0, 210).lastIndexOf(" ");
+    if (cutIndex === -1) cutIndex = 210; // Unless we have no choice
+    pages.push(remaining.substring(0, cutIndex));
+    remaining = remaining.substring(cutIndex === 210 ? cutIndex : cutIndex + 1);
+  }
+  // Format pages with proper escaping
+  const formattedPages = pages.map((page) => {
+    return `{raw:'"${page}"'}`;
+  });
+
+  let _formattedPages = `[${formattedPages.join(", ")}]`;
+
+  // Generate command with proper NBT structure
+  return `data modify block 4 68 32 Items append value {count: 1, components: {"minecraft:written_book_content": {pages: ${_formattedPages}, author: "${author}", title: {raw: "${title}"}}}, id: "minecraft:written_book"}`;
+}
 
 export default app;
