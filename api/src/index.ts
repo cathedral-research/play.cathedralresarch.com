@@ -33,6 +33,10 @@ app.post("/new-post", async (c) => {
 
     await socket.ready();
 
+    await socket.send(
+      // `data modify block 5 69 32 set {z: 32, id: "minecraft:sign", y: 69, x: 5, front_text: {has_glowing_text: 0b, color: "black", messages: ['"latest blog"', '"post"', '"${"hello"}"', '""']}, is_waxed: 0b, back_text: {has_glowing_text: 0b, color: "black", messages: ['""', '""', '""', '""']}}`,
+      `data modify block 5 69 32 front_text.messages set value ['"latest post"', '{"text":"${body.title}","bold":true}', '""', '""']`,
+    );
     const resp = await socket.send(command);
     const parsed = JSON.parse(resp);
 
@@ -94,7 +98,7 @@ function generateBookCommand(
   let _formattedPages = `[${formattedPages.join(", ")}]`;
 
   // Generate command with proper NBT structure
-  return `data modify block 4 68 32 Items append value {count: 1, components: {"minecraft:written_book_content": {pages: ${_formattedPages}, author: "${author}", title: {raw: "${title}"}}}, id: "minecraft:written_book"}`;
+  return `data modify block 5 68 32 Book set value {count: 1, components: {"minecraft:written_book_content": {pages: ${_formattedPages}, author: "${author}", title: {raw: "${title}"}}}, id: "minecraft:written_book"}`;
 }
 
 export default app;

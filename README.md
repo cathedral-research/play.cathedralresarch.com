@@ -51,10 +51,17 @@ that it just auto-fills the slot  as 0b.
 OK THIS ACTUALLY WORKS
 `data modify block 4 68 32 Items append value {count: 1, Slot: 1b, components: {"minecraft:written_book_content": {pages: [{raw: '"test"'}, {raw: '"test 2"'}], author: "test", title: {raw: "test"}}}, id: "minecraft:written_book"}`
 
-ok got the command working but it will simply overwrite whatever is in the slot. the bad part about this is i can't simply read what slots are taken since RCON responses are simply cut off for some reason.
+ok lecterns are goated
+`data modify block 5 68 32 Book set value {count: 1, Slot: 1b, components: {"minecraft:written_book_content": {pages: [{raw: '"hello"'}], author: "test", title: {raw: "hello"}}}, id: "minecraft:written_book"}`
 
-my solution is to simply make a new chest + sign whenever a new post comes out.
+this works:
+`data modify block 5 69 32 front_text.messages[0] set value '"Updated text"'`
 
-this allows multiple people to read at once.
+`data modify block 5 69 32 front_text.messages set value ['"new line 1"', '"new line 2"', '""', '""']`
 
-ok so it looks like theres a char limit on book titles and author names
+todo:
+- [ ] move to server
+- [ ] build a small church
+- [ ] put book title and author name on sign
+- [ ] prevent people from taking the books
+  adventure mode? worldguard? command block? protect spawn?
