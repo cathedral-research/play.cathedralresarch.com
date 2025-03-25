@@ -1,6 +1,6 @@
 *node_modules
 *.env
-minecraft/server
+server/*
 *.jar
 *.pem
 */.DS_STORE
