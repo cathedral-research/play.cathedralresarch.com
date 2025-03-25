@@ -1,35 +1,26 @@
 # Cathedral Minecraft Server + Webservice
 > play.cathedral.mc
 
-## starting the minecraft server
-0. (make sure you're in the root)
-1. put server.jar into server/
-2. cd minecraft && ./minecraft/startup.sh
-3. accept eula, enable rcon, set rcon password
-4. ./minecraft/startup.sh
-
-## starting the api
-0. (make sure you're in the root)
-1. make env file with RCON_PASSWORD and SECRET in api/
-2. cd api && bun i && bun run src/index.ts
-
 ## server setup
-this blocks all external rcon connections:
-iptables -A INPUT -p tcp --dport 25575 ! -s 127.0.0.1 -j DROP
+1. make a server folder, name it anything: mkdir ~/server-folder
+2. put a paper mc .jar in ~/server-folder
+3. put startup.sh in the ~/server-folder
+4. start a tmux session: tmux new -s minecraft
+5. go into server folder: cd ~/server-folder
+6. make the startup script executable: chmod +x ./startup.sh
+7. run it: ./startup.sh
+8. detatch: ctrl + b, then d
 
--
+## run api
+1. git clone this repo
+2. go into it: cd cathedral-mc
+3. install dependencies: bun i
+4. populate env file with:
+- NODE_ENV, PORT, TLS (TRUE or FALSE), SECRET
+5. get cert.pem and key.pem files, put them in project root
+6. start it: bun start
 
-command to test connectivity:
-curl -X POST http://localhost:3000/test
-
-curl -X POST http://localhost:3000/new-post \
-  -H "Content-Type: application/json" \
-  -d '{
-    "author": "test",
-    "title": "test",
-    "content": "Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged. It was popularised in the 1960s with the release of Letraset sheets containing Lorem Ipsum passages, and more recently with desktop publishing software like Aldus PageMaker including versions of Lorem Ipsum."
-  }'
-
+brain vomit:
 ok so this works:
 give @p written_book[written_book_content={title:"test",author:"test",pages:['"test"','"test 2"']}] 1
 
