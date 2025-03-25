@@ -10,7 +10,7 @@ interface NewPostBody {
   content: string;
 }
 
-const HOST = "localhost";
+const HOST = "play.cathedralresearch.com";
 const PORT = 4567;
 const CONSOLE_PASSWORD = process.env.CONSOLE_PASSWORD;
 
@@ -71,6 +71,10 @@ app.get("/items", async (c) => {
   }
 });
 
+app.get("/", async (c) => {
+  return c.text("hello");
+});
+
 function generateBookCommand(
   author: string,
   title: string,
@@ -101,4 +105,11 @@ function generateBookCommand(
   return `data modify block 5 68 32 Book set value {count: 1, components: {"minecraft:written_book_content": {pages: ${_formattedPages}, author: "${author}", title: {raw: "${title}"}}}, id: "minecraft:written_book"}`;
 }
 
-export default app;
+export default {
+  port: 3000,
+  fetch: app.fetch,
+  // tls: {
+  //   cert: Bun.file("cert.pem"),
+  //   key: Bun.file("key.pem"),
+  // },
+};

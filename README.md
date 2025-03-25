@@ -60,8 +60,14 @@ this works:
 `data modify block 5 69 32 front_text.messages set value ['"new line 1"', '"new line 2"', '""', '""']`
 
 todo:
-- [ ] move to server
-- [ ] build a small church
-- [ ] put book title and author name on sign
-- [ ] prevent people from taking the books
+- [ ] build a small church like the one at the dolomites
+- [ ] make a queue system so the church contains the last 10 posts
+- [ ] world protection
+- [ ] pentest
+  - [ ] direct minecraft webhook connection
+  - [ ] non https api connection
+- [ ] github to api authentication
+- [ ] deployment pipeline
+- [ ] replace servertap with bash wrapper
+
   adventure mode? worldguard? command block? protect spawn?

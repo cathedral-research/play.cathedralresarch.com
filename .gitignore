@@ -2,3 +2,6 @@
 *.env
 minecraft/server
 *.jar
+*.pem
+*/.DS_STORE
+.DS_STORE
