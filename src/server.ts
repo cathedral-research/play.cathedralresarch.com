@@ -1,4 +1,4 @@
-export class MinecraftServer {
+export class MinecraftServerTmux {
   tmuxSession: string;
 
   constructor(tmuxSession: string = "minecraft") {
@@ -26,26 +26,51 @@ export class MinecraftServer {
     await pipeProc.exited;
   }
 
-  public execute(command: string): Promise<void> {
-    return new Promise<void>((resolve, reject) => {
-      const proc = Bun.spawn([
-        "tmux",
-        "send-keys",
-        "-t",
-        this.tmuxSession,
-        command,
-        "Enter",
-      ]);
+  public async execute(command: string): Promise<void> {
+    return new Promise<void>(async (resolve, reject) => {
+      try {
+        // Create temporary buffer file
+        const bufferPath = `/tmp/tmux-buffer-${Date.now()}`;
+        await Bun.write(bufferPath, command);
 
-      proc.exited.then((exitCode) => {
-        if (exitCode === 0) {
-          resolve();
-        } else {
-          reject(
-            new Error(`Failed to send command to tmux session: ${exitCode}`),
-          );
-        }
-      });
+        // Load buffer from file to avoid shell escaping issues
+        const loadBuffer = Bun.spawn([
+          "tmux",
+          "load-buffer",
+          "-b",
+          "minecraft-cmd",
+          bufferPath,
+        ]);
+        await loadBuffer.exited;
+
+        // Paste and execute
+        const pasteBuffer = Bun.spawn([
+          "tmux",
+          "paste-buffer",
+          "-b",
+          "minecraft-cmd",
+          "-d",
+          "-t",
+          this.tmuxSession,
+        ]);
+        await pasteBuffer.exited;
+
+        // Send final Enter key
+        const sendEnter = Bun.spawn([
+          "tmux",
+          "send-keys",
+          "-t",
+          this.tmuxSession,
+          "Enter",
+        ]);
+        await sendEnter.exited;
+
+        // Cleanup
+        await Bun.$`rm ${bufferPath}`;
+        resolve();
+      } catch (error) {
+        reject(`Command execution failed: ${error}`);
+      }
     });
   }
 

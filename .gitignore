@@ -5,3 +5,4 @@ server
 *.pem
 */.DS_STORE
 .DS_STORE
+deploy.sh

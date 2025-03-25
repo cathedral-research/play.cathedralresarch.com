@@ -1,24 +1,5 @@
 # Cathedral Minecraft Server + Webservice
-> play.cathedral.mc
-
-## server setup
-1. make a server folder, name it anything: mkdir ~/server-folder
-2. put a paper mc .jar in ~/server-folder
-3. put startup.sh in the ~/server-folder
-4. start a tmux session: tmux new -s minecraft
-5. go into server folder: cd ~/server-folder
-6. make the startup script executable: chmod +x ./startup.sh
-7. run it: ./startup.sh
-8. detatch: ctrl + b, then d
-
-## run api
-1. git clone this repo
-2. go into it: cd cathedral-mc
-3. install dependencies: bun i
-4. populate env file with:
-- NODE_ENV, PORT, TLS (TRUE or FALSE), SECRET
-5. get cert.pem and key.pem files, put them in project root
-6. start it: bun start
+> play.cathedralresearch.com
 
 brain vomit:
 ok so this works:
@@ -62,3 +43,11 @@ todo:
 - [ ] replace servertap with bash wrapper
 
   adventure mode? worldguard? command block? protect spawn?
+
+
+deploy:
+scp -r src root@192.3.73.161:~/api/
+scp package.json root@192.3.73.161:~/api/
+scp tsconfig.json root@192.3.73.161:~/api/
+ensure .env file is good
+ensure minecraft tmux pane is on
